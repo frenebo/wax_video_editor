@@ -3,21 +3,21 @@ import os
 import numpy  as np
 from PIL import Image, ImageFilter
 
-H = 1500
-W = 1000
+H = 900
+W = 600
 
-win_bounds = [166, 645, 464, 1082]
+win_bounds = [int(H*2/5), int(H*3/5), int(W*2/5), int(W*3/5)]
 
 
-img_dir = r"/Users/paulkreymborg/Downloads/sep26_trialthree_tilted"
-diffed_img_dir = r"/Users/paulkreymborg/Downloads/sep26_trialthree_tilted_processed/subtract_avg"
+img_dir = r"C:\Users\Bob\Documents\wax_freezing_photos\23-11-03 nov03\1 trial one"
+diffed_img_dir = r"C:\Users\Bob\Documents\PROCESSED\23-11-03\1_trialone_avg_subtracted"
 os.makedirs(diffed_img_dir, exist_ok=True)
 
 img_filenames = sorted([fn for fn  in os.listdir(img_dir) if fn.endswith(".JPG")])
 print(img_filenames)
 
 N_images = len(img_filenames)
-N_buf_frames = 10
+N_buf_frames = 20
 
 buffer = np.zeros((N_buf_frames, W, H, 3), dtype=float)
 
@@ -25,7 +25,7 @@ def read_img_as_float_and_resize_and_blur(img_fp):
     pil_img = Image.open(img_fp)
     pil_img = pil_img.resize([H,W], Image.LANCZOS)
     
-    pil_img = pil_img.filter(ImageFilter.GaussianBlur(radius=1))
+    # pil_img = pil_img.filter(ImageFilter.GaussianBlur(radius=3))
     return np.array(pil_img).astype(float)
 
 
@@ -40,8 +40,8 @@ def get_diffed_img(img):
     img_bw = np.mean(img, axis=2)
     
     # Correct average brightness to be equal within  window, to account for flickering
-    past_mean_within_window = np.mean(avg_past_bw[win_bounds[0]:win_bounds[1],win_bounds[2]:win_bounds[3]])
-    current_mean_within_window = np.mean(img_bw[win_bounds[0]:win_bounds[1],win_bounds[2]:win_bounds[3]])
+    # past_mean_within_window = np.mean(avg_past_bw[win_bounds[0]:win_bounds[1],win_bounds[2]:win_bounds[3]])
+    # current_mean_within_window = np.mean(img_bw[win_bounds[0]:win_bounds[1],win_bounds[2]:win_bounds[3]])
     
     # img_bw *= past_mean_within_window / current_mean_within_window
     
@@ -83,7 +83,9 @@ for i in range(N_images):
     if i >= N_buf_frames:
         diffed_img_i = get_diffed_img(img_i).astype(np.uint8)
         save_diffed_fp = os.path.join(diffed_img_dir, img_name)
-        Image.fromarray(diffed_img_i).save(save_diffed_fp)
+        diffed_pil_img = Image.fromarray(diffed_img_i)
+        diffed_pil_img = diffed_pil_img.filter(ImageFilter.MedianFilter(size = 3))
+        diffed_pil_img.save(save_diffed_fp)
         
     # print(img_i.shape)
     buffer[i % N_buf_frames] = img_i
